@@ -1,0 +1,23 @@
+# Maven y Gradle
+target/*
+target/
+out/
+build/
+
+# Cofig IDE
+.vscode/
+.idea/
+*.iml
+
+# Archivos de entorno y credenciales
+.env
+.env.*
+*.env
+
+# 
+**/*~undo-tree~*
+
+
+# 
+docs/
+README copy.md
