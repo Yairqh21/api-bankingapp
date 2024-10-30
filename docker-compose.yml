@@ -19,12 +19,10 @@ services:
 
   mysql:
     image: mysql:8.0
-    env_file:
-      - .env
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}             
+      MYSQL_DATABASE: ${DB_DATABASE}            
       MYSQL_PASSWORD: ${DB_PASSWORD}                   
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}         
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}        
     ports:
       - "3306:3306"                          
     networks:

@@ -29,7 +29,7 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserDTO request) {
-        System.out.println(request);
+        
         try {
             final UserDTO response = userService.registerUser(request);
             return ResponseEntity.ok(response);

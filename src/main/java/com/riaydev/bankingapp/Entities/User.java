@@ -2,6 +2,7 @@ package com.riaydev.bankingapp.Entities;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -51,5 +52,9 @@ public class User {
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Account> accounts = new ArrayList<>();
+
+    private String otp;
+    private Instant otpExpiration;
+    private String resetToken;
 
 }

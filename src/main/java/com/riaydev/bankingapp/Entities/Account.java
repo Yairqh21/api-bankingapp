@@ -1,6 +1,7 @@
 package com.riaydev.bankingapp.Entities;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,8 +27,9 @@ public class Account {
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
 
+    @Builder.Default
     @Column(unique = true, nullable = false)
-    private String accountNumber;
+    private String accountNumber = UUID.randomUUID().toString().substring(0, 6);
 
     @Builder.Default
     @Column(nullable = false)
