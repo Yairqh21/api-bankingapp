@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public UserDTO userToUserDTO(User user) {
-        String accountNumber = user.getAccounts().isEmpty() ? null : user.getAccounts().get(0).getAccountNumber();
+        String accountNumber = user.getAccount().isEmpty() ? null : user.getAccount().get(0).getAccountNumber();
         return new UserDTO(
                 user.getName(),
                 user.getEmail(),
@@ -136,7 +136,7 @@ public class UserServiceImpl implements UserService {
                 .balance(BigDecimal.ZERO)
                 .build();
 
-        user.getAccounts().add(account);
+        user.getAccount().add(account);
 
         accountRepository.save(account);
 

@@ -53,7 +53,7 @@ public class User {
 
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Account> accounts = new ArrayList<>();
+    private List<Account> account = new ArrayList<>();
 
     private String otp;
     private Instant otpExpiration;
