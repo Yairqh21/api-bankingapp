@@ -46,6 +46,8 @@ public class User {
     @Column(nullable = false)
     private String phoneNumber;
 
+    private String pin;
+
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
