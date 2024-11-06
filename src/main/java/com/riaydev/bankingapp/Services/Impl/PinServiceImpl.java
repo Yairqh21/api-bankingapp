@@ -1,6 +1,8 @@
 package com.riaydev.bankingapp.Services.Impl;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -45,10 +47,15 @@ public class PinServiceImpl implements PinService {
         userRepository.save(currentUser);
     }
 
-    private User getCurrentAuthenticatedUser() {
-        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        private User getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No authenticated user found");
+        }
+
+        String email = authentication.getName(); 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found" ));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
 }

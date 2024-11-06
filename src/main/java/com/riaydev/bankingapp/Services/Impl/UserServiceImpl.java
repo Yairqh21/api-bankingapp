@@ -1,6 +1,7 @@
 package com.riaydev.bankingapp.Services.Impl;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -122,6 +123,7 @@ public class UserServiceImpl implements UserService {
                 .phoneNumber(userDTO.phoneNumber())
                 .address(userDTO.address())
                 .password(passwordEncoder.encode(userDTO.password()))
+                .create_at(LocalDateTime.now())
                 .build();
     }
 

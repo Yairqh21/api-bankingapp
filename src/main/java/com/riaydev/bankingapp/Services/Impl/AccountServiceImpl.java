@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +32,7 @@ public class AccountServiceImpl implements AccountService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
+    //private final Authentication authentication;
 
     @Override
     public AccountDTO getAccountInfo(String email) {
@@ -57,7 +59,7 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().add(amount));
         accountRepository.save(account);
 
-        saveTransaction(currentUser, amount, TransactionType.CASH_DEPOSIT, "N/A");
+        saveTransaction(amount, TransactionType.CASH_DEPOSIT, account, null);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
 
-        saveTransaction(currentUser, amount, TransactionType.CASH_WITHDRAWAL, "N/A");
+        saveTransaction(amount, TransactionType.CASH_WITHDRAWAL, account, null);
     }
 
     @Override
@@ -109,7 +111,7 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(sourceAccount);
         accountRepository.save(targetAccount);
 
-        saveTransaction(userSender, amount, TransactionType.CASH_TRANSFER, targetAccountNumber);
+        saveTransaction(amount, TransactionType.CASH_TRANSFER, sourceAccount, targetAccount);
     }
 
     @Override
@@ -117,17 +119,31 @@ public class AccountServiceImpl implements AccountService {
         User user = getCurrentAuthenticatedUser();
         Account account = accountRepository.findByUser(user)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found"));
-        return transactionRepository.findByAccount(account)
-                .stream()
-                .map(TransactionResponse::new)
-                .collect(Collectors.toList());
+        
+        List<Transaction> transactions = transactionRepository.findBySourceAccountAccountNumber(account.getAccountNumber());
+    
+        return transactions.stream().map(transaction -> new TransactionResponse(
+                transaction.getId(),
+                transaction.getAmount(),
+                transaction.getTransactionType().name(),
+                transaction.getTransactionDate(),
+                transaction.getSourceAccount().getAccountNumber(),
+                transaction.getTargetAccount() != null ? transaction.getTargetAccount().getAccountNumber() : "N/A" 
+        )).collect(Collectors.toList());
     }
+    
 
     private User getCurrentAuthenticatedUser() {
-        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No authenticated user found");
+        }
+
+        String email = authentication.getName(); 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
+    
 
     private void verifyPin(User user, String pin) {
         if (!passwordEncoder.matches(pin, user.getPin())) {
@@ -135,14 +151,14 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    private void saveTransaction(User user, BigDecimal amount, TransactionType type, String targetAccountNumber) {
+    private void saveTransaction(BigDecimal amount, TransactionType type, Account sourAccountNumber, Account targetAccountNumber) {
+
         Transaction transaction = Transaction.builder()
-                .sourceAccountNumber(user.getAccount().get(0).getAccountNumber())
                 .amount(amount)
                 .transactionType(type)
                 .transactionDate(new Date())
-                .targetAccountNumber(targetAccountNumber)
-                .account(user.getAccount().get(0)) // Asocia la transacción con la cuenta del usuario
+                .sourceAccount(sourAccountNumber)
+                .targetAccount(targetAccountNumber)
                 .build();
         transactionRepository.save(transaction);
     }

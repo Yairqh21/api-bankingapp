@@ -17,29 +17,35 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Builder
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "transaction")
+@Table(name = "transactions")
 public class Transaction {
 
     @Id
     @Column(nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(precision = 19, scale = 2)
+    @Column(precision = 19, scale = 2, nullable = false)
     private BigDecimal amount;
-    private TransactionType transactionType;
-    private Date transactionDate;
-    private String sourceAccountNumber;
-    private String targetAccountNumber;
 
-    @ManyToOne
-    @JoinColumn(name = "account_id", nullable = false)
-    private Account account;
+    @Column(name = "transaction_type", nullable = false)
+    private TransactionType transactionType;
+
+    @Column(name = "transaction_date", nullable = false)
+    private Date transactionDate;
+    
+    @ManyToOne(targetEntity = Account.class)
+    @JoinColumn(name = "source_account_id", nullable = false)
+    private Account sourceAccount;  
+
+    @ManyToOne(targetEntity = Account.class)
+    @JoinColumn(name = "target_account_id")
+    private Account targetAccount;  
 
     public enum TransactionType {
         CASH_WITHDRAWAL,
@@ -49,5 +55,5 @@ public class Transaction {
         ASSET_PURCHASE,
         ASSET_SELL
     }
-    
 }
+

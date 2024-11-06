@@ -3,7 +3,6 @@ package com.riaydev.bankingapp.DTO;
 import java.math.BigDecimal;
 import java.util.Date;
 
-import com.riaydev.bankingapp.Entities.Transaction;
 
 public record TransactionResponse(
     Long id,
@@ -13,15 +12,5 @@ public record TransactionResponse(
     String sourceAccountNumber,
     String targetAccountNumber
 ) {
-    public TransactionResponse(Transaction transaction) {
-        this(
-            transaction.getId(),
-            transaction.getAmount(),
-            transaction.getTransactionType().toString(), 
-            transaction.getTransactionDate(),
-            transaction.getSourceAccountNumber(),
-            transaction.getTargetAccountNumber()
-        );
-    }
 }
 
