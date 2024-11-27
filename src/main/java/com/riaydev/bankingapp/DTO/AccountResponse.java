@@ -2,7 +2,7 @@ package com.riaydev.bankingapp.DTO;
 
 import java.math.BigDecimal;
 
-public record AccountDTO(
+public record AccountResponse(
     String accountNumber,
     BigDecimal balance
 ) {
