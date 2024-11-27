@@ -2,162 +2,153 @@ package com.riaydev.bankingapp.Services.Impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.riaydev.bankingapp.DTO.AuthRequest;
-import com.riaydev.bankingapp.DTO.TokenDTO;
-import com.riaydev.bankingapp.DTO.UserDTO;
+import com.riaydev.bankingapp.DTO.TokenResponse;
+import com.riaydev.bankingapp.DTO.UserRequest;
 import com.riaydev.bankingapp.Entities.Account;
-import com.riaydev.bankingapp.Entities.Token;
 import com.riaydev.bankingapp.Entities.User;
+import com.riaydev.bankingapp.Exceptions.ResourceNotFoundException;
+import com.riaydev.bankingapp.Exceptions.UnauthorizedException;
 import com.riaydev.bankingapp.Repositories.AccountRepository;
-import com.riaydev.bankingapp.Repositories.TokenRepository;
 import com.riaydev.bankingapp.Repositories.UserRepository;
 import com.riaydev.bankingapp.Security.JwtTokenProvider;
 import com.riaydev.bankingapp.Services.UserService;
-
-
-import lombok.RequiredArgsConstructor;
+import com.riaydev.bankingapp.Utils.UserRegistrationRequest;
 
 @Service
-@RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
 
-    @Autowired
-    private final UserRepository userRepository;
-    private final AccountRepository accountRepository;
-    private final TokenRepository tokenRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtService;
+        @Autowired
+        private UserRepository userRepository;
+        @Autowired
+        private AccountRepository accountRepository;
+        @Autowired
+        private PasswordEncoder passwordEncoder;
+        @Autowired
+        private JwtTokenProvider jwtpProvider;
+        @Autowired
+        private UserRegistrationRequest uRequest;
 
-    @Override
-    public UserDTO registerUser(final UserDTO userDTO) {
-        if (checkIfEmailOrPhoneExists(userDTO.email(), userDTO.phoneNumber())) {
-            throw new RuntimeException("User already exists with email or phone number");
+        @Override
+        public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+
+                User userEntity = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new UsernameNotFoundException(
+                                                "User not found for the given identifier: "+email));
+                return new org.springframework.security.core.userdetails.User(
+                                userEntity.getEmail(), 
+                                userEntity.getPassword(),
+                                Collections.emptyList()); 
         }
 
-        User user = userDTOToUser(userDTO);
-        User savedUser = userRepository.save(user);
-        createAccount(savedUser);
+        @Override
+        public UserRequest registerUser(final UserRequest userDTO) throws Exception{
+                if (checkIfEmailOrPhoneExists(userDTO.email(), userDTO.phoneNumber())) {
+                        throw new BadCredentialsException("User already exists with email or phone number");//400
+                }
 
-        return userToUserDTO(savedUser);
-    }
+                if(!uRequest.validateEmail(userDTO.email())){
+                        throw new BadCredentialsException("Invalid email: " + userDTO.email() );
+                }
 
-    @Override
-    public TokenDTO loginUser(final AuthRequest authRequest) {
-        final User user = userRepository.findByEmail(authRequest.identifier())
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "User not found for the given identifier: " + authRequest.identifier()));
+                User user = userDTOToUser(userDTO);
+                User savedUser = userRepository.save(user);
+                createAccount(savedUser);
 
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            authRequest.identifier(),
-                            authRequest.password()));
-        } catch (BadCredentialsException e) {
-            throw e; 
+                return userToUserDTO(savedUser);
         }
 
-        final String accessToken = jwtService.generateToken(user);
-        revokeAllUserTokens(user);
-        saveUserToken(user, accessToken);
+        @Override
+        public TokenResponse loginUser(final AuthRequest authRequest) {
+                
+                String username = authRequest.identifier();
+                String password = authRequest.password();
 
-        return new TokenDTO(accessToken);
-    }
+                Authentication authentication = this.authenticate(username, password);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    private void saveUserToken(User user, String jwtToken) {
-        final Token token = Token.builder()
-                .user(user)
-                .token(jwtToken)
-                .tokenType(Token.TokenType.BEARER)
-                .isExpired(false)
-                .isRevoked(false)
-                .build();
-        tokenRepository.save(token);
-    }
-
-    @Override
-    public UserDTO getUserInfo(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found for email: " + email));
-        return userToUserDTO(user);
-    }
-
-    private void revokeAllUserTokens(final User user) {
-        final List<Token> validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
-        if (!validUserTokens.isEmpty()) {
-            validUserTokens.forEach(token -> {
-                token.setIsExpired(true);
-                token.setIsRevoked(true);
-            });
-            tokenRepository.saveAll(validUserTokens);
+                final String accessToken = jwtpProvider.generateToken(authentication);
+                return new TokenResponse(accessToken);
         }
-    }
 
-    public UserDTO userToUserDTO(User user) {
-        String accountNumber = user.getAccount().isEmpty() ? null : user.getAccount().get(0).getAccountNumber();
-        return new UserDTO(
-                user.getName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getAddress(),
-                accountNumber,
-                user.getPassword());
-    }
+        @Override
+        public UserRequest getUserInfo(String email) {
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new UsernameNotFoundException("User not found for email: " + email));
+                return userToUserDTO(user);
+        }
 
-    public User userDTOToUser(UserDTO userDTO) {
-        return User.builder()
-                .name(userDTO.name())
-                .email(userDTO.email())
-                .phoneNumber(userDTO.phoneNumber())
-                .address(userDTO.address())
-                .password(passwordEncoder.encode(userDTO.password()))
-                .create_at(LocalDateTime.now())
-                .build();
-    }
+        public UserRequest userToUserDTO(User user) {
+                String accountNumber = user.getAccount().isEmpty() ? null : user.getAccount().get(0).getAccountNumber();
+                return new UserRequest(
+                                user.getName(),
+                                user.getEmail(),
+                                user.getPhoneNumber(),
+                                user.getAddress(),
+                                accountNumber,
+                                user.getPassword());
+        }
 
-    public boolean checkIfEmailOrPhoneExists(String email, String phoneNumber) {
-        return userRepository.existsByEmail(email) || userRepository.existsByPhoneNumber(phoneNumber);
-    }
+        public User userDTOToUser(UserRequest userDTO) {
+                return User.builder()
+                                .name(userDTO.name())
+                                .email(userDTO.email())
+                                .phoneNumber(userDTO.phoneNumber())
+                                .address(userDTO.address())
+                                .password(passwordEncoder.encode(userDTO.password()))
+                                .create_at(LocalDateTime.now())
+                                .build();
+        }
 
-    private String createAccount(User user) {
-        Account account = Account.builder()
-                .user(user)
-                .accountNumber(UUID.randomUUID().toString().substring(0, 6))
-                .balance(BigDecimal.ZERO)
-                .build();
+        public boolean checkIfEmailOrPhoneExists(String email, String phoneNumber) {
+                return userRepository.existsByEmail(email) || userRepository.existsByPhoneNumber(phoneNumber);
+        }
 
-        user.getAccount().add(account);
+        private String createAccount(User user) {
+                Account account = Account.builder()
+                                .user(user)
+                                .accountNumber(UUID.randomUUID().toString().substring(0, 6))
+                                .balance(BigDecimal.ZERO)
+                                .build();
 
-        accountRepository.save(account);
+                user.getAccount().add(account);
 
-        return account.getAccountNumber();
-    }
+                accountRepository.save(account);
 
-    @Override
-    public String logout(String token) {
-        Token storedToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Token not found"));
-    
-        storedToken.setIsExpired(true);
-        storedToken.setIsRevoked(true);
-        tokenRepository.save(storedToken);
-    
-        SecurityContextHolder.clearContext();
-    
-        return "Logout successful";
-    }
-    
+                return account.getAccountNumber();
+        }
+
+        private Authentication authenticate(String username, String password) {
+                UserDetails userDetail = loadUserByUsername(username);
+
+                if (userDetail == null) {
+                        throw new ResourceNotFoundException("User not found");//401
+                }
+
+                if (!passwordEncoder.matches(password, userDetail.getPassword())) {
+                        throw new UnauthorizedException("Bad credentials");//401
+                }
+
+                return new UsernamePasswordAuthenticationToken(username, password);
+        }
 
 }

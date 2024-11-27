@@ -2,12 +2,14 @@ package com.riaydev.bankingapp.Services.Impl;
 
 import java.time.Instant;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.riaydev.bankingapp.Entities.Otp;
 import com.riaydev.bankingapp.Entities.User;
+import com.riaydev.bankingapp.Exceptions.ForbiddenException;
 import com.riaydev.bankingapp.Repositories.OtpRepository;
 import com.riaydev.bankingapp.Repositories.UserRepository;
 import com.riaydev.bankingapp.Services.AuthService;
@@ -46,10 +48,10 @@ public class AuthServiceImpl implements AuthService {
             User user = userRepository.findByEmail(identifier)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
             Otp verifyOtp = otpRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new RuntimeException("Not found otp for this user: " + user.getEmail()));
+                    .orElseThrow(() -> new UsernameNotFoundException("Not found otp for this user: " + user.getEmail()));
         
             if (!otp.equals(verifyOtp.getOtp()) || Instant.now().isAfter(verifyOtp.getOtpExpiration())) {
-                throw new IllegalArgumentException("Invalid or expired OTP");
+                throw new ForbiddenException("Invalid or expired OTP");
             }
         
             String resetToken = otpUtils.generateResetToken();
@@ -64,10 +66,10 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
             
             Otp userOtp = otpRepository.findByUserId(user.getId())
-                    .orElseThrow( () ->new RuntimeException("Not found otp for this user: "+ user.getEmail()));  
+                    .orElseThrow( () ->new UsernameNotFoundException("Not found otp for this user: "+ user.getEmail()));  
 
             if (!resetToken.equals(userOtp.getResetToken())) {
-                throw new IllegalArgumentException("Invalid reset token");
+                throw new BadCredentialsException("Invalid reset token");
             }
     
             user.setPassword(passwordEncoder.encode(newPassword)); 
