@@ -4,19 +4,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.riaydev.bankingapp.DTO.AuthRequest;
-import com.riaydev.bankingapp.DTO.TokenDTO;
-import com.riaydev.bankingapp.DTO.UserDTO;
+import com.riaydev.bankingapp.DTO.TokenResponse;
+import com.riaydev.bankingapp.DTO.UserRequest;
+import com.riaydev.bankingapp.Security.JwtTokenProvider;
+import com.riaydev.bankingapp.Services.TokenBlacklistService;
 import com.riaydev.bankingapp.Services.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.http.HttpHeaders;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -26,43 +28,35 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class UserController {
 
     private final UserService userService;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody UserDTO request) {
-        
-        try {
-            final UserDTO response = userService.registerUser(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest request) throws Exception {
+
+        final UserRequest response = userService.registerUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody AuthRequest loginRequest) {
-        try {
-            final TokenDTO jwt = userService.loginUser(loginRequest);
-            return ResponseEntity.ok(jwt);
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bad credentials");
-        } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
-        }
+    public ResponseEntity<?> loginUser(@Valid @RequestBody AuthRequest loginRequest) {
+        final TokenResponse jwt = userService.loginUser(loginRequest);
+        return ResponseEntity.ok(jwt);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logoutUser(HttpServletRequest request) {
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bearer token not found");
-        }
+    public ResponseEntity<?> logoutUser(HttpServletRequest request) {
+        String token = jwtTokenProvider.extractTokenFromHeader(request);
 
-        final String token = authHeader.substring(7); 
-        String result = userService.logout(token);
-        return ResponseEntity.ok(result);
+        if (token != null && !token.isEmpty()) {
+            long expirationTime = jwtTokenProvider.extractExpiration(token).getTime();
+            tokenBlacklistService.addToBlacklist(token, expirationTime);
+            SecurityContextHolder.clearContext();
+            return ResponseEntity.ok(
+                    Map.of("message", "Logout successful"));
+        }
+        return ResponseEntity.badRequest().body("Token not provided");
     }
 
 }

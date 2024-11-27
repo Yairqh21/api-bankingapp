@@ -9,6 +9,7 @@ import com.riaydev.bankingapp.DTO.ResetPasswordRequest;
 import com.riaydev.bankingapp.DTO.VerifyOtpRequest;
 import com.riaydev.bankingapp.Services.AuthService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -25,21 +26,28 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/send-otp")
-    public ResponseEntity<?> sendOtp(@RequestBody OtpRequest request) {
+    public ResponseEntity<?> sendOtp(@Valid @RequestBody OtpRequest request) {
         authService.sendOtp(request.identifier());
-        return ResponseEntity.ok(Map.of("message", "OTP sent successfully to: " + request.identifier()));
+        return ResponseEntity.ok(
+                Map.of("message", "OTP sent successfully to: " + request.identifier()));
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
-        String resetToken = authService.verifyOtp(request.identifier(), request.otp());
-        return ResponseEntity.ok(Map.of("passwordResetToken", resetToken));
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        String resetToken = authService.verifyOtp(
+                request.identifier(),
+                request.otp());
+        return ResponseEntity.ok(
+                Map.of("passwordResetToken", resetToken));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request.identifier(), request.resetToken(), request.newPassword());
-        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(
+                request.identifier(),
+                request.resetToken(),
+                request.newPassword());
+        return ResponseEntity.ok(
+                Map.of("message", "Password reset successfully"));
     }
 }
-

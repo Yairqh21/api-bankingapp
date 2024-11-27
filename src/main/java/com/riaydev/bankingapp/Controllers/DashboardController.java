@@ -5,8 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.riaydev.bankingapp.DTO.AccountDTO;
-import com.riaydev.bankingapp.DTO.UserDTO;
+import com.riaydev.bankingapp.DTO.AccountResponse;
+import com.riaydev.bankingapp.DTO.UserRequest;
 import com.riaydev.bankingapp.Services.AccountService;
 import com.riaydev.bankingapp.Services.UserService;
 
@@ -27,15 +27,15 @@ public class DashboardController {
     private AccountService accountService;
 
     @GetMapping("/user")
-    public ResponseEntity<UserDTO> getUserInfo(Authentication authentication) {
+    public ResponseEntity<UserRequest> getUserInfo(Authentication authentication) {
         String email = authentication.getName(); 
-        UserDTO userInfo = userService.getUserInfo(email);
+        UserRequest userInfo = userService.getUserInfo(email);
 
         return ResponseEntity.ok(userInfo); 
     }
 
     @GetMapping("/account")
-    public ResponseEntity<AccountDTO> getAccountInfo(Authentication authentication) {
+    public ResponseEntity<AccountResponse> getAccountInfo(Authentication authentication) {
         return ResponseEntity.ok(accountService.getAccountInfo(authentication.getName()));
     }
     
