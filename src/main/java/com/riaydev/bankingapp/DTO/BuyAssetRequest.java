@@ -15,7 +15,7 @@ public record BuyAssetRequest(
      @Pattern(regexp = "^[0-9]{4}$", message = "Pin must be exactly 4 digits.")
      String pin,
      
-     @DecimalMin(value = "0.01", inclusive = true, message = "Amount must be greater than zero.")
+     @DecimalMin(value = "10.00", inclusive = true, message = "Amount must be greater than zero.")
      BigDecimal amount
 
 ) {

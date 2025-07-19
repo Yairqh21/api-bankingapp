@@ -1,7 +1,7 @@
 package com.riaydev.bankingapp.Entities;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 
 import jakarta.persistence.Column;
@@ -37,7 +37,7 @@ public class Transaction {
     private TransactionType transactionType;
 
     @Column(name = "transaction_date", nullable = false)
-    private Date transactionDate;
+    private LocalDateTime transactionDate;
     
     @ManyToOne(targetEntity = Account.class)
     @JoinColumn(name = "source_account_id", nullable = false)

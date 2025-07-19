@@ -1,8 +1,8 @@
 package com.riaydev.bankingapp.Services.Impl;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Date;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +13,7 @@ import com.riaydev.bankingapp.Entities.Account;
 import com.riaydev.bankingapp.Entities.Transaction;
 import com.riaydev.bankingapp.Entities.Transaction.TransactionType;
 import com.riaydev.bankingapp.Entities.User;
+import com.riaydev.bankingapp.Exceptions.InsufficientFundsException;
 import com.riaydev.bankingapp.Exceptions.ResourceNotFoundException;
 import com.riaydev.bankingapp.Repositories.AccountRepository;
 import com.riaydev.bankingapp.Repositories.TransactionRepository;
@@ -49,10 +50,8 @@ public class AccountServiceImpl implements AccountService {
 
         Account account = securityService.getAccountForCurrentUser();
 
-        synchronized (account) { 
-            account.setBalance(account.getBalance().add(amount));
-            accountRepository.save(account);
-        }
+        account.setBalance(account.getBalance().add(amount));
+        accountRepository.save(account);
 
         saveTransaction(amount, TransactionType.CASH_DEPOSIT, account, null);
     }
@@ -63,17 +62,18 @@ public class AccountServiceImpl implements AccountService {
 
         securityService.verifyPin(pin);
         Account account = securityService.getAccountForCurrentUser();
-        synchronized (account) {
-            securityService.validateSufficientBalance(account, amount);
-            account.setBalance(account.getBalance().subtract(amount));
-            accountRepository.save(account);
-        }
+
+        securityService.validateSufficientBalance(account, amount);
+        account.setBalance(account.getBalance().subtract(amount));
+        accountRepository.save(account);
+
         saveTransaction(amount, TransactionType.CASH_WITHDRAWAL, account, null);
     }
 
     @Override
     @Transactional
-    public void transfer(BigDecimal amount, String senderPin, String targetAccountNumber) throws Exception {
+    public void transfer(BigDecimal amount, String senderPin, String targetAccountNumber)
+            throws InsufficientFundsException {
 
         securityService.verifyPin(senderPin);
 
@@ -82,20 +82,22 @@ public class AccountServiceImpl implements AccountService {
         Account targetAccount = accountRepository.findByAccountNumber(targetAccountNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Target account not found"));
 
-        synchronized (sourceAccount) {
-            securityService.validateSufficientBalance(sourceAccount, amount);
+        if (!sourceAccount.getId().equals(targetAccount.getId())) {
 
-            sourceAccount.setBalance(sourceAccount.getBalance().subtract(amount));
+            int updatedRows = accountRepository.debitAccount(sourceAccount.getId(), amount);
+            if (updatedRows == 0) {
+                throw new InsufficientFundsException("Insufficient balance");
+            }
+
+            accountRepository.creditAccount(targetAccount.getId(), amount);
+
+            saveTransaction(amount, TransactionType.CASH_TRANSFER, sourceAccount, targetAccount);
         }
 
-        synchronized (targetAccount) {
-            targetAccount.setBalance(targetAccount.getBalance().add(amount));
+        else {
+            throw new IllegalArgumentException("Cannot transfer to the same account");
         }
 
-        accountRepository.save(sourceAccount);
-        accountRepository.save(targetAccount);
-
-        saveTransaction(amount, TransactionType.CASH_TRANSFER, sourceAccount, targetAccount);
     }
 
     @Override
@@ -123,7 +125,7 @@ public class AccountServiceImpl implements AccountService {
         Transaction transaction = Transaction.builder()
                 .amount(amount)
                 .transactionType(type)
-                .transactionDate(new Date())
+                .transactionDate(LocalDateTime.now())
                 .sourceAccount(sourAccountNumber)
                 .targetAccount(targetAccountNumber)
                 .build();

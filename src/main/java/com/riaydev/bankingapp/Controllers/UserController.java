@@ -32,7 +32,7 @@ public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest request) throws Exception {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRequest request) {
 
         final UserRequest response = userService.registerUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

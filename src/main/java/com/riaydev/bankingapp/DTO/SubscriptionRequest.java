@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Positive;
 public record SubscriptionRequest(
 
     @NotNull(message = "Amount cannot be null")
-    @DecimalMin(value = "1", inclusive = false, message = "Amount must be positive")
+    @DecimalMin(value = "1.00", inclusive = false, message = "Amount must be positive")
     BigDecimal amount,
     @NotNull
     @Positive(message = "Amount must be positive")

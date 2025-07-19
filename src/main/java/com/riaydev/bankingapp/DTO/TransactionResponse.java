@@ -1,14 +1,14 @@
 package com.riaydev.bankingapp.DTO;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 
 public record TransactionResponse(
     Long id,
     BigDecimal amount,
     String transactionType, 
-    Date transactionDate,
+    LocalDateTime transactionDate,
     String sourceAccountNumber,
     String targetAccountNumber
 ) {

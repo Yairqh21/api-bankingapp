@@ -5,7 +5,7 @@ import com.riaydev.bankingapp.DTO.TokenResponse;
 import com.riaydev.bankingapp.DTO.UserRequest;
 
 public interface UserService {
-    UserRequest registerUser(UserRequest user) throws Exception;
+    UserRequest registerUser(UserRequest user);
 
     TokenResponse loginUser(AuthRequest request);
 

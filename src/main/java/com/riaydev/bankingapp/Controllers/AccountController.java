@@ -64,20 +64,27 @@ public class AccountController {
 
     @PostMapping("/buy-asset")
     public ResponseEntity<?> buyAsset(@Valid @RequestBody BuyAssetRequest request) throws Exception {
-        marketService.buyAsset(request);
-        return ResponseEntity.status(HttpStatus.OK).body(Map.of("msg", "Asset purchase successful."));
-
-        // .body(Map.of("msg", "Internal error occurred while purchasing the
-        // asset."));// 500
+        try {
+            marketService.buyAsset(request);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(Map.of("msg", "Asset purchase successful."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("msg", "Internal error occurred while purchasing the asset."));
+        }
 
     }
 
     @PostMapping("/sell-asset")
     public ResponseEntity<?> sellAsset(@Valid @RequestBody SellAssetRequest request) throws Exception {
-        marketService.sellAsset(request);
-        return ResponseEntity.status(HttpStatus.OK).body(Map.of("msg", "Asset sale successful."));
-        // body(Map.of("msg", "Internal error occurred while selling the asset."));//
-        // 500
+        try {
+            marketService.sellAsset(request);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(Map.of("msg", "Asset sale successful."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("msg", "Internal error occurred while selling the asset."));
+        }
 
     }
 
@@ -85,9 +92,12 @@ public class AccountController {
     public ResponseEntity<?> getNetWorth() throws Exception {
 
         BigDecimal netWorth = marketService.calculateNetWorth();
+
+        if (netWorth == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("msg", "Internal error occurred while fetching net worth."));
+        }
         return ResponseEntity.ok(Map.of("netWorth", netWorth));
-        // body(Map.of("msg", "Internal error occurred while fetching net worth."));//
-        // 500
 
     }
 

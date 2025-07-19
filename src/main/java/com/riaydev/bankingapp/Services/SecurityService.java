@@ -81,7 +81,7 @@ public class SecurityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
     }
 
-    public void validateSufficientBalance(Account account, BigDecimal amount) throws Exception {
+    public void validateSufficientBalance(Account account, BigDecimal amount) throws InsufficientFundsException {
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException("Insufficient balance");
         }

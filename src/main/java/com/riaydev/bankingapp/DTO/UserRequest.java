@@ -2,7 +2,6 @@ package com.riaydev.bankingapp.DTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -13,7 +12,7 @@ public record UserRequest(
     String name,
 
     @NotBlank(message = "No empty fields")
-    @Email(message = "The email format must be valid.")
+    //@Email(message = "The email format must be valid.")
     String email,
 
     @NotBlank(message = "Phone number is required")

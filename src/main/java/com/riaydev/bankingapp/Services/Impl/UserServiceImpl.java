@@ -2,18 +2,13 @@ package com.riaydev.bankingapp.Services.Impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -54,15 +49,21 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 User userEntity = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new UsernameNotFoundException(
                                                 "User not found for the given identifier: "+email));
+
+                // Retornar el UserDetails con las autoridades correspondientes
                 return new org.springframework.security.core.userdetails.User(
-                                userEntity.getEmail(), 
+                                userEntity.getEmail(), // El nombre de usuario será el email
                                 userEntity.getPassword(),
-                                Collections.emptyList()); 
+                                //userEntity.isEnabled(), // Activo
+                                //userEntity.isAccountNonExpired(), // Cuenta no expirada
+                                //userEntity.isCredentialsNonExpired(), // Credenciales no expiradas
+                                //userEntity.isAccountNonLocked(), // Cuenta no bloqueada
+                                Collections.emptyList()); // Lista de roles y permisos
         }
 
         @Override
-        public UserRequest registerUser(final UserRequest userDTO) throws Exception{
-                if (checkIfEmailOrPhoneExists(userDTO.email(), userDTO.phoneNumber())) {
+        public UserRequest registerUser(final UserRequest userDTO){
+                if (userRepository.existsByEmailAndPhoneNumber(userDTO.email(), userDTO.phoneNumber())) {
                         throw new BadCredentialsException("User already exists with email or phone number");//400
                 }
 

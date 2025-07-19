@@ -2,10 +2,10 @@ package com.riaydev.bankingapp.Controllers;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.riaydev.bankingapp.Services.MarketService;
+import com.riaydev.bankingapp.Services.client.MarketPriceClient;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -17,18 +17,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/market")
+@RequiredArgsConstructor
 public class MarketController {
 
-    private final MarketService marketService;
-
-    public MarketController(MarketService marketService){
-        this.marketService = marketService;
-    }
+    private final MarketPriceClient marketPriceClient; ;
 
     @GetMapping("/prices")
     public ResponseEntity<?> getMarketPrices() {
         try {
-            Map<String, BigDecimal> prices = marketService.getMarketPrices();
+            Map<String, BigDecimal> prices = marketPriceClient.getMarketPrices();
             return ResponseEntity.ok(prices);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -38,7 +35,7 @@ public class MarketController {
 
     @GetMapping("/prices/{symbol}")
     public ResponseEntity<BigDecimal> getAssetPrice(@Valid @PathVariable String symbol) throws Exception {
-        return ResponseEntity.ok(marketService.getAssetPrice(symbol));
+        return ResponseEntity.ok(marketPriceClient.getAssetPrice(symbol));
     }
 
 }

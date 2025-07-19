@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.riaydev.bankingapp.Entities.Otp;
 import com.riaydev.bankingapp.Entities.User;
 import com.riaydev.bankingapp.Exceptions.ForbiddenException;
+import com.riaydev.bankingapp.Exceptions.ResourceNotFoundException;
 import com.riaydev.bankingapp.Repositories.OtpRepository;
 import com.riaydev.bankingapp.Repositories.UserRepository;
 import com.riaydev.bankingapp.Services.AuthService;
@@ -31,9 +32,11 @@ public class AuthServiceImpl implements AuthService {
     
         @Override
         public void sendOtp(String identifier) {
-            String otp = otpUtils.generateOtp();
+            
             User user = userRepository.findByEmail(identifier)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found for this email"));
+
+            String otp = otpUtils.generateOtp();
 
             Otp newOtp = Otp.builder()
                 .user(user)
@@ -46,9 +49,9 @@ public class AuthServiceImpl implements AuthService {
         @Override
         public String verifyOtp(String identifier, String otp) {
             User user = userRepository.findByEmail(identifier)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found for this email"));
             Otp verifyOtp = otpRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new UsernameNotFoundException("Not found otp for this user: " + user.getEmail()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Not found otp for this user: " + user.getEmail()));
         
             if (!otp.equals(verifyOtp.getOtp()) || Instant.now().isAfter(verifyOtp.getOtpExpiration())) {
                 throw new ForbiddenException("Invalid or expired OTP");
