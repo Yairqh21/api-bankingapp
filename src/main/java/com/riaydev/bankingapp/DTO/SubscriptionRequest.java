@@ -2,15 +2,20 @@ package com.riaydev.bankingapp.DTO;
 
 import java.math.BigDecimal;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public record SubscriptionRequest(
 
-    @NotBlank(message = "")
+    @NotNull(message = "Amount cannot be null")
+    @DecimalMin(value = "1", inclusive = false, message = "Amount must be positive")
     BigDecimal amount,
-    @NotBlank
+    @NotNull
+    @Positive(message = "Amount must be positive")
     Integer intervalSeconds,
-    @NotBlank
+    @NotNull
+    @Positive(message = "Interval must be positive")
     String pin
 ) {
 
