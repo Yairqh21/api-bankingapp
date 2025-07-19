@@ -37,7 +37,7 @@ Run with Docker
 ```bash
 
 docker build -t bankingapp .
-docker run -p 8080:8080 bankingapp
+docker run -p 3000:3000 bankingapp
 ```
 
 
